@@ -4,6 +4,7 @@ import time
 from hand_tracker import get_hand_landmarks  # Import hand tracking logic
 from gesture_utils import detect_swipe, detect_play_pause    
 import mediapipe as mp
+import voice_command
 
 mp_hands = mp.solutions.hands  # Correct way to reference MediaPipe Hands module
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8)
@@ -27,7 +28,7 @@ while True:
     # Get hand landmarks using the 'get_hand_landmarks' function
     landmarks = get_hand_landmarks(frame)
     
-    if landmarks:
+    if voice_command.gesture_active and landmarks:
         current_time = time.time() 
 
         # Call the function to detect swipe gestures
