@@ -1,9 +1,17 @@
 import pyautogui
 import time
 import mediapipe as mp
+from ctypes import cast, POINTER
+from comtypes import CLSCTX_ALL
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import math
 
 mp_hands = mp.solutions.hands  # Correct way to reference MediaPipe Hands module
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8)
+# Initialize system volume controller
+devices = AudioUtilities.GetSpeakers()
+interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+volume_controller = cast(interface, POINTER(IAudioEndpointVolume))
 
 hand_positions = []
 
@@ -40,18 +48,39 @@ def detect_swipe(landmarks, current_time, last_swipe_time, cooldown=1.0, min_swi
 
 
 def detect_play_pause(landmarks, current_time, last_gesture_time, gesture_cooldown):
-    thumb_tip = landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-    index_tip = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+    if (current_time - last_gesture_time) < gesture_cooldown:
+        return False
+    
+    fingers = [
+        (mp_hands.HandLandmark.THUMB_TIP, mp_hands.HandLandmark.THUMB_IP),
+        (mp_hands.HandLandmark.INDEX_FINGER_TIP, mp_hands.HandLandmark.INDEX_FINGER_PIP),
+        (mp_hands.HandLandmark.MIDDLE_FINGER_TIP, mp_hands.HandLandmark.MIDDLE_FINGER_PIP),
+        (mp_hands.HandLandmark.RING_FINGER_TIP, mp_hands.HandLandmark.RING_FINGER_PIP),
+        (mp_hands.HandLandmark.PINKY_TIP, mp_hands.HandLandmark.PINKY_PIP),
+    ]
 
-    # Calculate distance between thumb and index finger tip
-    distance = ((thumb_tip.x - index_tip.x) ** 2 + (thumb_tip.y - index_tip.y) ** 2) ** 0.5
+    fingers_up = 0
+    for tip,pip in fingers:
+        if landmarks.landmark[tip].y < landmarks.landmark[pip].y:
+            fingers_up +=1
 
-    # Threshold to detect pinch (i.e. fingers close = "pause")
-    if (current_time - last_gesture_time) > gesture_cooldown:
-        if distance < 0.05:
-            pyautogui.press("space")  # Usually toggles play/pause in media players
-            print("Pause/Play Toggled")
-            return True
-    return False
+    if fingers_up == 5 :
+        pyautogui.press("space")
+        print("Pause/Play triggered")
+        return True
 
-           
+
+# just checking dont mind
+# def control_volume(landmarks):
+#     thumb_tip = landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+#     index_tip = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+
+#     # Calculate Euclidean distance between thumb and index finger
+#     dx = thumb_tip.x - index_tip.x
+#     dy = thumb_tip.y - index_tip.y
+#     distance = math.sqrt(dx**2 + dy**2)
+
+#     # Map distance to volume range (0.0 to 1.0 for pycaw)
+#     volume = min(max(distance * 4, 0.0), 1.0)  # Adjust 4 for sensitivity
+#     volume_controller.SetMasterVolumeLevelScalar(volume, None)
+#     print(f"Volume set to: {int(volume * 100)}%")           

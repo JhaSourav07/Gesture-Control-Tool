@@ -2,7 +2,7 @@ import cv2
 import pyautogui
 import time
 from hand_tracker import get_hand_landmarks  # Import hand tracking logic
-from gesture_utils import detect_swipe, detect_play_pause    # Import swipe detection logic
+from gesture_utils import detect_swipe, detect_play_pause    
 import mediapipe as mp
 
 mp_hands = mp.solutions.hands  # Correct way to reference MediaPipe Hands module
@@ -16,9 +16,11 @@ gesture_cooldown = 1.5
 
 cap = cv2.VideoCapture(0)  # Open webcam
 
+
 while True:
     ret, frame = cap.read()  # Read frame from webcam
-    
+    frame = cv2.flip(frame, 1)
+
     if not ret:
         break
     
@@ -26,7 +28,7 @@ while True:
     landmarks = get_hand_landmarks(frame)
     
     if landmarks:
-        current_time = time.time()
+        current_time = time.time() 
 
         # Call the function to detect swipe gestures
         swiped, last_swipe_time = detect_swipe(landmarks, current_time, last_swipe_time)
@@ -39,6 +41,12 @@ while True:
         if detect_play_pause(landmarks, current_time, last_gesture_time, gesture_cooldown):
             last_gesture_time = current_time
             continue
+        
+        # just checking dont mind
+        # if (current_time - last_gesture_time) > gesture_cooldown:
+        #     control_volume(landmarks)
+        #     last_gesture_time = current_time
+        #     continue
         
     # Show the processed frame
     cv2.imshow('Hand Gesture Recognition', frame)
